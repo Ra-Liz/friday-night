@@ -28,7 +28,9 @@ git push origin main
 echo "=== 4/4 更新并推送 gh-pages（worktree 干净构建）==="
 TMP="$(mktemp -d)"
 trap 'git worktree remove --force "$TMP/gh" 2>/dev/null || true; rm -rf "$TMP"' EXIT
-git worktree add --detach "$TMP/gh" gh-pages
+# 基于远程 gh-pages tip 而非本地分支（本地可能滞后于远程导致 non-fast-forward）
+git fetch origin gh-pages
+git worktree add --detach "$TMP/gh" origin/gh-pages
 find "$TMP/gh" -mindepth 1 -maxdepth 1 -not -name .git -exec rm -rf {} +
 cp -R dist/. "$TMP/gh/"
 printf 'node_modules/\n' > "$TMP/gh/.gitignore"
