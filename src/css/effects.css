@@ -1,0 +1,232 @@
+/* ===== 特效层（技术概要设计 §4.3）=====
+   状态量：--p（解冻进度）/ --pf（上冻进度），JS 每秒写入一次
+   动感量：常驻 @keyframes，由 data-stage 开关 —— 二者叠加满足
+   FR-03-2 档内连续变化 与 FR-09-1 60fps */
+
+.stage { --p: 0; --pf: 0; }
+
+/* ================= S1 解冻：冰封覆盖层 ================= */
+.ice-overlay { pointer-events: none; z-index: 10; }
+
+/* 冰纹纹理：随 --p 从中心揭示 + 淡出 */
+.ice-texture {
+  position: absolute;
+  inset: 0;
+  background: url("../assets/ice-texture.svg") center / cover no-repeat;
+  -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent 98%);
+          mask-image: radial-gradient(closest-side, #000 62%, transparent 98%);
+  -webkit-mask-size: calc(220% - var(--p) * 190%);
+          mask-size: calc(220% - var(--p) * 190%);
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  opacity: calc(1 - var(--p) * 0.92);
+  transition: opacity 1s linear, mask-size 1s linear, -webkit-mask-size 1s linear;
+}
+
+/* 色调层：偏蓝白 → 恢复正常 */
+.ice-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(140, 200, 255, .55), rgba(70, 130, 200, .35));
+  mix-blend-mode: color;
+  opacity: calc(1 - var(--p));
+  transition: opacity 1s linear;
+}
+
+/* 主人公色调：低饱和偏暗 → 正常（D-1：filter 每秒写一次，可接受） */
+.hero {
+  filter: saturate(calc(0.35 + var(--p) * 0.65))
+          brightness(calc(0.7 + var(--p) * 0.3))
+          hue-rotate(calc((1 - var(--p)) * 12deg));
+  transition: filter 1s linear;
+}
+
+/* S2/S3：静态冰封层退场，视频接管主视觉 */
+.stage[data-state="S2"] .ice-texture,
+.stage[data-state="S3"] .ice-texture,
+.stage[data-state="S2"] .ice-tint,
+.stage[data-state="S3"] .ice-tint { opacity: 0; }
+
+.stage[data-state="S2"] .cracks,
+.stage[data-state="S3"] .cracks,
+.stage[data-state="S2"] .drips,
+.stage[data-state="S3"] .drips { display: none; }
+
+.stage[data-state="S2"] .hero,
+.stage[data-state="S3"] .hero { visibility: hidden; }
+
+.stage[data-state="S2"] .video,
+.stage[data-state="S3"] .video { opacity: 1; }
+
+/* ---------- 裂纹：L1 起「生长」（FR-03 L1） ---------- */
+.cracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+.stage[data-stage="L1"] .cracks,
+.stage[data-stage="L2"] .cracks,
+.stage[data-stage="L3"] .cracks,
+.stage[data-stage="L4"] .cracks { display: block; }
+
+.cracks .c {
+  fill: none;
+  stroke: rgba(230, 247, 255, .85);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  filter: drop-shadow(0 0 2px rgba(160, 220, 255, .8));
+}
+/* L1：先长 3 条；L2+：全部 5 条 */
+.stage[data-stage="L1"] .c1,
+.stage[data-stage="L1"] .c2,
+.stage[data-stage="L1"] .c3,
+.stage[data-stage="L2"] .c,
+.stage[data-stage="L3"] .c,
+.stage[data-stage="L4"] .c {
+  animation: crack-grow 1.4s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 0.25s);
+}
+@keyframes crack-grow {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ---------- 融水：仅 L1/L2（FR-03 L1/L2） ---------- */
+.drips { display: none; }
+.stage[data-stage="L1"] .drips,
+.stage[data-stage="L2"] .drips { display: block; }
+
+.drips span {
+  position: absolute;
+  top: 16%;
+  width: 3px;
+  height: 16px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(190, 230, 255, 0), #bfe9ff 90%);
+  animation: drip 2.4s ease-in infinite;
+}
+.drips span:nth-child(1) { left: 26%; }
+.drips span:nth-child(2) { left: 34%; top: 22%; animation-delay: .7s; animation-duration: 2.8s; }
+.drips span:nth-child(3) { left: 48%; top: 12%; animation-delay: .3s; }
+.drips span:nth-child(4) { left: 58%; top: 20%; animation-delay: 1.1s; animation-duration: 2.2s; }
+.drips span:nth-child(5) { left: 66%; top: 15%; animation-delay: .5s; }
+.drips span:nth-child(6) { left: 72%; top: 24%; animation-delay: 1.5s; animation-duration: 3s; }
+@keyframes drip {
+  0%   { transform: translateY(0) scaleY(0.3); opacity: 0; }
+  20%  { opacity: 0.9; }
+  100% { transform: translateY(38vh) scaleY(1); opacity: 0; }
+}
+
+/* ---------- 蓄力：仅 L4（FR-03 L4） ---------- */
+.aura {
+  pointer-events: none;
+  z-index: 12;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  background: radial-gradient(closest-side at 50% 58%, rgba(140, 210, 255, 0.4), transparent 72%);
+}
+.stage[data-stage="L4"] .aura {
+  opacity: 1;
+  animation: breathe 1.6s ease-in-out infinite;
+}
+@keyframes breathe {
+  50% { transform: scale(1.06); filter: brightness(1.3); }
+}
+.stage[data-stage="L4"] .hero { animation: jitter 0.35s linear infinite; }
+@keyframes jitter {
+  25% { transform: translateX(2px); }
+  75% { transform: translateX(-2px); }
+}
+
+/* ---------- 冰块爆裂碎片：S1→S2 转场（FR-04-1，≤2s） ---------- */
+.shards span {
+  position: absolute;
+  inset: 0;
+  background: url("../assets/ice-texture.svg") center / cover no-repeat;
+  opacity: 0;
+}
+.shards span:nth-child(1) { clip-path: polygon(0 0, 55% 0, 40% 45%, 0 38%);      --dx: -46vw; --dy: -34vh; --rot: -28deg; }
+.shards span:nth-child(2) { clip-path: polygon(55% 0, 100% 0, 100% 40%, 40% 45%); --dx: 40vw;  --dy: -30vh; --rot: 22deg; }
+.shards span:nth-child(3) { clip-path: polygon(0 38%, 40% 45%, 30% 100%, 0 100%); --dx: -38vw; --dy: 26vh;  --rot: 18deg; }
+.shards span:nth-child(4) { clip-path: polygon(100% 40%, 100% 100%, 62% 100%, 76% 55%); --dx: 44vw; --dy: 32vh; --rot: -20deg; }
+.shards span:nth-child(5) { clip-path: polygon(40% 45%, 55% 20%, 76% 55%, 62% 100%, 30% 100%); --dx: 6vw; --dy: 40vh; --rot: 12deg; }
+.shards span:nth-child(6) { clip-path: polygon(55% 0, 55% 20%, 76% 55%);          --dx: 20vw;  --dy: -44vh; --rot: -30deg; }
+.shards span:nth-child(7) { clip-path: polygon(0 0, 0 38%, 12% 18%);              --dx: -30vw; --dy: -20vh; --rot: -40deg; }
+.shards span:nth-child(8) { clip-path: polygon(100% 0, 100% 40%, 82% 22%);        --dx: 34vw;  --dy: -26vh; --rot: 35deg; }
+
+.stage.burst .shards span {
+  opacity: 1;
+  animation: shard-fly 1.3s cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+}
+@keyframes shard-fly {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+}
+
+/* ================= S3 上冻：叠加于视频之上（FR-06） ================= */
+.freeze-overlay {
+  pointer-events: none;
+  z-index: 15;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+.stage[data-state="S3"] .freeze-overlay { opacity: 1; }
+
+/* 霜层：冰晶由边缘向中心蔓延（mask 内缩，FR-06 F0→F2） */
+.frost {
+  position: absolute;
+  inset: 0;
+  background: url("../assets/frost-texture.svg") center / cover no-repeat;
+  -webkit-mask-image: radial-gradient(closest-side, transparent 34%, #000 96%);
+          mask-image: radial-gradient(closest-side, transparent 34%, #000 96%);
+  -webkit-mask-size: calc(150% - var(--pf) * 78%);
+          mask-size: calc(150% - var(--pf) * 78%);
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  opacity: min(calc(var(--pf) * 1.5), 1);
+  transition: opacity 1s linear, mask-size 1s linear, -webkit-mask-size 1s linear;
+}
+
+/* 冰封面纱：模糊 + 降饱和 + 冰蓝色调（FR-06 F1） */
+.freeze-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(150, 205, 255, 0.18), rgba(80, 140, 210, 0.32));
+  -webkit-backdrop-filter: blur(calc(var(--pf) * 4px)) saturate(calc(1 - var(--pf) * 0.6)) brightness(calc(1 - var(--pf) * 0.25));
+          backdrop-filter: blur(calc(var(--pf) * 4px)) saturate(calc(1 - var(--pf) * 0.6)) brightness(calc(1 - var(--pf) * 0.25));
+  opacity: var(--pf);
+  transition: opacity 1s linear;
+}
+/* backdrop-filter 不支持时的降级（FR-10 降级矩阵：半透明冰色覆盖层） */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .freeze-veil { background: rgba(150, 205, 255, 0.38); }
+}
+
+/* F2：冰纹覆盖 + 视频进一步失色（FR-06 F2） */
+.freeze-ice {
+  position: absolute;
+  inset: 0;
+  background: url("../assets/ice-texture.svg") center / cover no-repeat;
+  opacity: clamp(0, calc((var(--pf) - 0.6) * 2.2), 1);
+  transition: opacity 1s linear;
+}
+.stage[data-stage="F2"] .video { filter: saturate(0.45) brightness(0.72); }
+
+/* ---------- S3→S1 彻底冻住转场（FR-07-2，≤1.5s） ---------- */
+.stage.refreeze .frost,
+.stage.refreeze .freeze-veil,
+.stage.refreeze .freeze-ice { opacity: 1; }
+.stage.refreeze .freeze-overlay { animation: deep-freeze 1.5s ease-in forwards; }
+@keyframes deep-freeze {
+  0%   { opacity: 1; filter: brightness(1); }
+  55%  { opacity: 1; filter: brightness(1.45); }
+  100% { opacity: 0; filter: brightness(1); }
+}

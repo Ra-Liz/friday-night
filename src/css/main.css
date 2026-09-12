@@ -1,0 +1,201 @@
+/* ===== 布局与响应式（技术概要设计 §6）===== */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+  background: radial-gradient(120% 100% at 50% 0%, #16233f 0%, #0a0e1a 55%, #06080f 100%);
+  color: #cfeaff;
+  overflow: hidden; /* 主视觉不产生横向滚动（FR-08-2） */
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh; /* 移动端地址栏抖动兜底（FR-10 降级矩阵） */
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+}
+
+/* ---------- 标题区 ---------- */
+.title { text-align: center; flex: none; }
+.title h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 6vw, 3rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  background: linear-gradient(180deg, #eaf7ff, #7fc4f0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.subtitle { margin: 4px 0 0; font-size: clamp(0.85rem, 3vw, 1.05rem); color: #8fb8d9; }
+
+/* ---------- 主视觉区 ---------- */
+.visual {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 12px 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #0b1322;
+  isolation: isolate; /* 隔离 backdrop-filter / mix-blend-mode 作用域 */
+}
+
+.hero,
+.video,
+.ice-overlay,
+.freeze-overlay,
+.aura,
+.video-fallback,
+.start-mask {
+  position: absolute;
+  inset: 0;
+}
+
+.hero { display: flex; align-items: center; justify-content: center; }
+.hero img { max-width: 72%; max-height: 92%; object-fit: contain; }
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* FR-05-3：等比裁剪铺满，不拉伸 */
+  opacity: 0;
+  background: #000;
+  transition: opacity 1s linear, filter 1s linear;
+}
+
+/* ---------- HUD ---------- */
+.hud { flex: none; text-align: center; padding-bottom: 4px; }
+.countdown {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.6rem, 8vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #eaf7ff;
+  text-shadow: 0 0 18px rgba(127, 196, 240, .45);
+  animation: second-pulse 1s ease-in-out infinite; /* FR-02-3 秒位轻微动效 */
+}
+@keyframes second-pulse {
+  50% { text-shadow: 0 0 28px rgba(127, 196, 240, .85); }
+}
+.progress-line { margin-top: 4px; font-size: clamp(0.85rem, 3.5vw, 1.1rem); color: #8fb8d9; }
+
+/* ---------- 兜底与遮罩 ---------- */
+button { font-family: inherit; }
+
+.start-mask,
+.video-fallback button,
+.start-mask button,
+.unmute {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.video-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: #0b1322;
+  z-index: 30;
+}
+.video-fallback img { max-width: 55%; max-height: 68%; }
+.video-fallback[hidden] { display: none; }
+
+.start-mask {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 10, 20, .55);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  z-index: 20;
+}
+.start-mask[hidden] { display: none; }
+
+.unmute {
+  position: absolute;
+  right: 12px;
+  bottom: 40px; /* 避让底部进度条 */
+  z-index: 25;
+  min-width: 44px; /* FR-08-3 点击区域 */
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid rgba(207, 234, 255, .4);
+  border-radius: 999px;
+  background: rgba(10, 16, 30, .65);
+  color: #cfeaff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.unmute[hidden] { display: none; }
+
+/* ---------- 视频进度条（FR-05-1b：S2/S3 可拖拽选择进度） ---------- */
+.seekbar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 26;
+  height: 28px; /* 命中区大于视觉高度（FR-08-3） */
+  padding: 0 10px 8px;
+  display: flex;
+  align-items: flex-end;
+  cursor: pointer;
+  touch-action: none; /* 拖拽不被页面滚动手势打断 */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .8s ease;
+}
+.stage[data-state="S2"] .seekbar,
+.stage[data-state="S3"] .seekbar { opacity: 1; pointer-events: auto; }
+
+.seek-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(207, 234, 255, .22);
+}
+.seek-fill {
+  position: relative;
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #4a9fdc, #8fd0ff);
+}
+.seek-fill::after { /* 拖拽把手 */
+  content: "";
+  position: absolute;
+  right: -7px; top: 50%;
+  width: 14px; height: 14px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: #eaf7ff;
+  box-shadow: 0 0 8px rgba(127, 196, 240, .8);
+}
+
+.start-mask button,
+.video-fallback button {
+  min-height: 48px;
+  padding: 12px 32px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #8fd0ff, #4a9fdc);
+  color: #08121f;
+}
+
+/* ---------- PC 布局（≥768px，FR-08-1） ---------- */
+@media (min-width: 768px) {
+  .stage { padding: 24px 32px; }
+  .visual { border-radius: 28px; }
+  .hero img { max-width: 46%; }
+}

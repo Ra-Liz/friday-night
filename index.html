@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0e1a" />
+  <title>FridayNight 解冻倒计时</title>
+  <meta name="description" content="周五 19:00，FridayNight 解冻开唱！工作日解冻倒计时，周末逐步上冻。" />
+  <meta property="og:title" content="FridayNight 解冻倒计时" />
+  <meta property="og:description" content="周五 19:00 解冻开唱，周末再上冻。" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧊</text></svg>" />
+  <link rel="stylesheet" href="./src/css/main.css" />
+  <link rel="stylesheet" href="./src/css/effects.css" />
+</head>
+<body>
+  <noscript>
+    <p style="color:#cfeaff;text-align:center;padding:2rem">请开启 JavaScript 查看解冻倒计时。</p>
+  </noscript>
+
+  <main class="stage" id="stage" data-state="S1" data-stage="L0">
+    <header class="title">
+      <h1>FRIDAY&nbsp;NIGHT</h1>
+      <p class="subtitle" id="subtitle">解冻倒计时</p>
+    </header>
+
+    <section class="visual" aria-label="主视觉">
+      <!-- 主人公图片层（S1 主视觉） -->
+      <div class="hero">
+        <img src="./src/assets/hero.jpg" alt="FridayNight 主人公" />
+      </div>
+
+      <!-- 解冻特效层（S1：冰封随 --p 消退） -->
+      <div class="ice-overlay">
+        <div class="ice-texture"></div>
+        <div class="ice-tint"></div>
+        <svg class="cracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path class="c c1" style="--i:0" d="M50 8 L46 26 L54 38 L48 52" />
+          <path class="c c2" style="--i:1" d="M28 12 L34 30 L28 44 L36 58" />
+          <path class="c c3" style="--i:2" d="M74 16 L68 34 L76 46 L70 60" />
+          <path class="c c4" style="--i:3" d="M50 52 L58 68 L52 84" />
+          <path class="c c5" style="--i:4" d="M22 52 L32 66 L26 82" />
+        </svg>
+        <div class="drips" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="shards" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <!-- L4 蓄力发光层 -->
+      <div class="aura" aria-hidden="true"></div>
+
+      <!-- 视频层（S2/S3 主视觉） -->
+      <video id="video" class="video" muted playsinline loop preload="none" poster="./src/assets/poster.jpg"></video>
+
+      <!-- 上冻特效层（S3：随 --pf 增强） -->
+      <div class="freeze-overlay" aria-hidden="true">
+        <div class="freeze-veil"></div>
+        <div class="frost"></div>
+        <div class="freeze-ice"></div>
+      </div>
+
+      <!-- 视频加载失败兜底（SRS E-5） -->
+      <div class="video-fallback" id="videoFallback" hidden>
+        <img src="./src/assets/poster.jpg" alt="视频加载失败" />
+        <button id="retryBtn" type="button">🔄 重试</button>
+      </div>
+
+      <!-- 自动播放被拦截兜底（SRS E-6） -->
+      <div class="start-mask" id="startMask" hidden>
+        <button id="startBtn" type="button">▶ 点击开始</button>
+      </div>
+      <!-- 视频进度条（S2/S3：可拖拽选择播放进度，FR-05-1b） -->
+      <div class="seekbar" id="seekbar" aria-label="视频进度条" title="拖拽选择播放进度">
+        <div class="seek-track"><div class="seek-fill" id="seekFill"></div></div>
+      </div>
+      <button id="unmuteBtn" class="unmute" type="button" hidden>🔇 取消静音</button>
+    </section>
+
+    <footer class="hud">
+      <div class="countdown" id="countdown">--天 --:--:--</div>
+      <div class="progress-line" id="progressLabel">解冻进度 0%</div>
+    </footer>
+  </main>
+
+  <script>
+    // 首帧防闪：提前按状态机规则打标（与 stateMachine.js 同一算法，改动需同步）
+    (function () {
+      var d = new Date(); d.setHours(0, 0, 0, 0);
+      var H = 36e5, mon = d.getTime() - ((d.getDay() + 6) % 7) * 864e5, t = Date.now();
+      var s, p;
+      if (t < mon + 115 * H) { s = 'S1'; p = (t - mon) / (115 * H); }
+      else if (t < mon + 120 * H) { s = 'S2'; p = 1; }
+      else { s = 'S3'; p = (t - mon - 120 * H) / (48 * H); }
+      var g = s === 'S1' ? (p < .15 ? 'L0' : p < .4 ? 'L1' : p < .7 ? 'L2' : p < .95 ? 'L3' : 'L4')
+             : s === 'S3' ? (p < .3 ? 'F0' : p < .7 ? 'F1' : 'F2') : null;
+      var st = document.getElementById('stage');
+      st.dataset.state = s;
+      if (g) st.dataset.stage = g; else st.removeAttribute('data-stage');
+      st.style.setProperty('--p', (s === 'S1' ? p : 1).toFixed(4));
+      st.style.setProperty('--pf', (s === 'S3' ? p : 0).toFixed(4));
+    })();
+  </script>
+  <script type="module" src="./src/js/main.js"></script>
+</body>
+</html>
