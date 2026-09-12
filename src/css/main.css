@@ -72,6 +72,12 @@ body {
   transition: opacity 1s linear, filter 1s linear;
 }
 
+/* 窄视口（宽高比 < 16:10，如手机竖屏）：cover 会大幅裁切左右画面，
+   切换为 contain 等比完整展示（黑边居中），保证视频画面完整（FR-05-3 v1.2） */
+@media (max-aspect-ratio: 16/10) {
+  .video { object-fit: contain; }
+}
+
 /* ---------- HUD ---------- */
 .hud { flex: none; text-align: center; padding-bottom: 4px; }
 .countdown {
