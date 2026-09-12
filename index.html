@@ -77,6 +77,17 @@
         <div class="seek-track"><div class="seek-fill" id="seekFill"></div></div>
       </div>
       <button id="unmuteBtn" class="unmute" type="button" hidden>🔇 取消静音</button>
+      <!-- 沉浸式切换（FR-05-3 v1.3：窄视口 contain 完整展示 ↔ cover 铺满） -->
+      <button id="immersiveBtn" class="immersive-toggle" type="button"
+              aria-label="切换沉浸式铺满" aria-pressed="false"
+              title="沉浸式铺满 / 完整展示">
+        <svg class="ic-expand" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="ic-compress" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </section>
 
     <footer class="hud">

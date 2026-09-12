@@ -73,9 +73,14 @@ body {
 }
 
 /* 窄视口（宽高比 < 16:10，如手机竖屏）：cover 会大幅裁切左右画面，
-   切换为 contain 等比完整展示（黑边居中），保证视频画面完整（FR-05-3 v1.2） */
+   切换为 contain 等比完整展示（黑边居中），保证视频画面完整（FR-05-3 v1.2）；
+   .stage.immersive 时切回 cover 铺满（沉浸式，FR-05-3 v1.3），
+   沉浸切换按钮也仅在此视口显示 */
 @media (max-aspect-ratio: 16/10) {
   .video { object-fit: contain; }
+  .stage.immersive .video { object-fit: cover; }
+  /* 提高特异度（0,2,1），压过下方 base 的 display:none（同值冲突时后者胜） */
+  .stage .immersive-toggle { display: flex; }
 }
 
 /* ---------- HUD ---------- */
@@ -143,6 +148,33 @@ button { font-family: inherit; }
   cursor: pointer;
 }
 .unmute[hidden] { display: none; }
+
+/* ---------- 沉浸式切换（FR-05-3 v1.3：窄视口 contain ↔ cover） ---------- */
+.immersive-toggle {
+position: absolute;
+right: 12px;
+top: 12px; /* 右上角：避开右下 unmute 与底部进度条 */
+z-index: 25;
+display: none; /* 仅窄视口显示（媒体查询内恢复 flex） */
+align-items: center;
+justify-content: center;
+width: 44px;
+height: 44px; /* FR-08-3 点击区域 */
+border: 1px solid rgba(207, 234, 255, .4);
+border-radius: 999px;
+background: rgba(10, 16, 30, .65);
+color: #cfeaff;
+cursor: pointer;
+-webkit-tap-highlight-color: transparent;
+opacity: 0;
+pointer-events: none;
+transition: opacity .8s ease;
+}
+.stage[data-state="S2"] .immersive-toggle,
+.stage[data-state="S3"] .immersive-toggle { opacity: 1; pointer-events: auto; }
+.immersive-toggle svg { width: 22px; height: 22px; }
+.stage.immersive .ic-expand { display: none; }
+.stage:not(.immersive) .ic-compress { display: none; }
 
 /* ---------- 视频进度条（FR-05-1b：S2/S3 可拖拽选择进度） ---------- */
 .seekbar {

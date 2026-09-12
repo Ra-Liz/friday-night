@@ -7,9 +7,11 @@
 import { computeState } from './stateMachine.js';
 
 const video = document.getElementById('video');
+const stage = document.getElementById('stage');
 const startMask = document.getElementById('startMask');
 const startBtn = document.getElementById('startBtn');
 const unmuteBtn = document.getElementById('unmuteBtn');
+const immersiveBtn = document.getElementById('immersiveBtn');
 const fallback = document.getElementById('videoFallback');
 const retryBtn = document.getElementById('retryBtn');
 const seekbar = document.getElementById('seekbar');
@@ -49,6 +51,12 @@ unmuteBtn.addEventListener('click', () => {
   wantMuted = !wantMuted;
   video.muted = wantMuted;
   unmuteBtn.textContent = wantMuted ? '🔇 取消静音' : '🔊 已开启声音';
+});
+
+/* 沉浸式切换（FR-05-3 v1.3）：窄视口下 contain 完整展示 ↔ cover 铺满 */
+immersiveBtn.addEventListener('click', () => {
+  const on = stage.classList.toggle('immersive');
+  immersiveBtn.setAttribute('aria-pressed', String(on));
 });
 
 /* ---------- 进度记忆（FR-05-1a：刷新恢复） ---------- */
@@ -146,11 +154,13 @@ export function activateVideo() {
   tryPlay();
 }
 
-/** 离开 S2/S3：暂停、清进度记录并释放资源（下周期从头播放） */
+/** 离开 S2/S3：暂停、清进度记录并释放资源（下周期从头播放），沉浸态一并归零 */
 export function deactivateVideo() {
   active = false;
   seeking = false;
-  hide(startMask);
+  stage.classList.remove('immersive');
+    immersiveBtn.setAttribute('aria-pressed', 'false');
+    hide(startMask);
   hide(unmuteBtn);
   video.pause();
   video.removeAttribute('src');
