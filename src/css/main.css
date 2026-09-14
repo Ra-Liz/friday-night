@@ -47,6 +47,11 @@ body {
   overflow: hidden;
   background: #0b1322;
   isolation: isolate; /* 隔离 backdrop-filter / mix-blend-mode 作用域 */
+  /* 视频当前适配模式（cover/contain），媒体查询/沉浸态切换，
+     供 media.js alignFx() 读取，驱动特效层与视频显示区域对齐（FR-06-4） */
+  --video-fit: cover;
+  /* 特效层相对视频显示盒的边距（px），由 media.js 计算写入 */
+  --fx-top: 0px; --fx-right: 0px; --fx-bottom: 0px; --fx-left: 0px;
 }
 
 .hero,
@@ -61,7 +66,7 @@ body {
 }
 
 .hero { display: flex; align-items: center; justify-content: center; }
-.hero img { max-width: 72%; max-height: 92%; object-fit: contain; }
+.hero img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; } /* v1.4：新主图 fit 整个容器 */
 
 .video {
   width: 100%;
@@ -78,7 +83,9 @@ body {
    沉浸切换按钮也仅在此视口显示 */
 @media (max-aspect-ratio: 16/10) {
   .video { object-fit: contain; }
+  .visual { --video-fit: contain; }
   .stage.immersive .video { object-fit: cover; }
+  .stage.immersive .visual { --video-fit: cover; }
   /* 提高特异度（0,2,1），压过下方 base 的 display:none（同值冲突时后者胜） */
   .stage .immersive-toggle { display: flex; }
 }
@@ -235,5 +242,4 @@ transition: opacity .8s ease;
 @media (min-width: 768px) {
   .stage { padding: 24px 32px; }
   .visual { border-radius: 28px; }
-  .hero img { max-width: 46%; }
 }

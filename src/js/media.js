@@ -16,6 +16,7 @@ const fallback = document.getElementById('videoFallback');
 const retryBtn = document.getElementById('retryBtn');
 const seekbar = document.getElementById('seekbar');
 const seekFill = document.getElementById('seekFill');
+const visual = document.querySelector('.visual');
 
 // 正式素材替换：仅需更换 src/assets/placeholder.mp4 文件，此处零改动
 const VIDEO_SRC = new URL('../assets/placeholder.mp4', import.meta.url).href;
@@ -26,6 +27,7 @@ let active = false;
 let wantMuted = true; // SRS Q-3：默认静音，提供取消静音按钮
 let seeking = false;  // 进度条拖拽中
 let lastSavedAt = 0;  // 进度保存节流时间戳
+let fxRaf = 0;        // alignFx 节流帧 id
 
 video.addEventListener('error', () => {
   if (active) showFallback();
@@ -53,10 +55,45 @@ unmuteBtn.addEventListener('click', () => {
   unmuteBtn.textContent = wantMuted ? '🔇 取消静音' : '🔊 已开启声音';
 });
 
-/* 沉浸式切换（FR-05-3 v1.3）：窄视口下 contain 完整展示 ↔ cover 铺满 */
+/* ---------- 特效层对齐（FR-06-4 v1.4：与视频显示区域一致） ---------- */
+
+/**
+ * 计算视频在 .visual 容器内的实际显示盒（object-fit cover/contain 数学），
+ * 写为 --fx-* 边距变量驱动 .freeze-overlay 内缩贴齐视频。
+ * cover → 全 0（铺满容器）；contain 黑边 → 对应边内缩。
+ */
+function alignFx() {
+  const style = getComputedStyle(visual);
+  const fit = style.getPropertyValue('--video-fit').trim() || 'cover';
+  let top = 0, right = 0, bottom = 0, left = 0;
+  if (fit === 'contain' && video.videoWidth && video.videoHeight) {
+    const cw = visual.clientWidth, ch = visual.clientHeight;
+    const scale = Math.min(cw / video.videoWidth, ch / video.videoHeight);
+    const w = video.videoWidth * scale, h = video.videoHeight * scale;
+    left = right = (cw - w) / 2;
+    top = bottom = (ch - h) / 2;
+  }
+  visual.style.setProperty('--fx-top', top + 'px');
+  visual.style.setProperty('--fx-right', right + 'px');
+  visual.style.setProperty('--fx-bottom', bottom + 'px');
+  visual.style.setProperty('--fx-left', left + 'px');
+}
+
+/** rAF 节流重算（容resize / 沉浸切换 / 视频尺寸就绪） */
+function scheduleAlign() {
+  if (fxRaf) return;
+  fxRaf = requestAnimationFrame(() => { fxRaf = 0; alignFx(); });
+}
+
+window.addEventListener('resize', scheduleAlign);
+video.addEventListener('loadedmetadata', scheduleAlign);
+
+/* 沉浸式切换（FR-05-3 v1.3）：窄视口下 contain 完整展示 ↔ cover 铺满；
+   切换后重算特效层边距（FR-06-4） */
 immersiveBtn.addEventListener('click', () => {
   const on = stage.classList.toggle('immersive');
   immersiveBtn.setAttribute('aria-pressed', String(on));
+  scheduleAlign();
 });
 
 /* ---------- 进度记忆（FR-05-1a：刷新恢复） ---------- */
@@ -150,6 +187,7 @@ export function activateVideo() {
   load();
   video.preload = 'auto';
   restoreProgress();
+  alignFx();
   show(unmuteBtn);
   tryPlay();
 }
