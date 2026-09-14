@@ -9,8 +9,8 @@
   <meta property="og:title" content="FridayNight 解冻倒计时" />
   <meta property="og:description" content="周五 19:00 解冻开唱，周末再上冻。" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧊</text></svg>" />
-  <script type="module" crossorigin src="./assets/index-D5bBQThj.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-DP1uS_yK.css">
+  <script type="module" crossorigin src="./assets/index-Coq_kdxi.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CRlpMBOv.css">
 </head>
 <body>
   <noscript>
@@ -26,23 +26,58 @@
     <section class="visual" aria-label="主视觉">
       <!-- 主人公图片层（S1 主视觉） -->
       <div class="hero">
-        <img src="./assets/hero-ak3ZKbQ8.jpg" alt="FridayNight 主人公" />
+        <img src="./assets/hero-DlHl6Wv9.jpg" alt="FridayNight 主人公" />
       </div>
 
       <!-- 解冻特效层（S1：冰封随 --p 消退） -->
       <div class="ice-overlay">
         <div class="ice-texture"></div>
-        <div class="ice-tint"></div>
-        <svg class="cracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <path class="c c1" style="--i:0" d="M50 8 L46 26 L54 38 L48 52" />
-          <path class="c c2" style="--i:1" d="M28 12 L34 30 L28 44 L36 58" />
-          <path class="c c3" style="--i:2" d="M74 16 L68 34 L76 46 L70 60" />
-          <path class="c c4" style="--i:3" d="M50 52 L58 68 L52 84" />
-          <path class="c c5" style="--i:4" d="M22 52 L32 66 L26 82" />
-        </svg>
-        <div class="drips" aria-hidden="true">
-          <span></span><span></span><span></span><span></span><span></span><span></span>
-        </div>
+        <!-- 磨砂冰玻璃：隔着“一层冰”的质感，随 --p 融化消退 -->
+        <div class="frost-glass"></div>
+          <div class="ice-tint"></div>
+          <!-- 多级分叉裂纹：seam=宽冰缝 line=亮裂线 branch=分支 -->
+          <svg class="cracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <g class="crack" style="--i:0">
+          <path class="seam" d="M50 6 L47 22 L53 34 L49 48" />
+        <path class="line" d="M50 6 L47 22 L53 34 L49 48" />
+        <path class="line branch" d="M49 48 L44 58 L46 70" />
+          </g>
+        <g class="crack" style="--i:1">
+              <path class="seam" d="M24 10 L30 26 L27 40 L33 54" />
+              <path class="line" d="M24 10 L30 26 L27 40 L33 54" />
+              <path class="line branch" d="M27 40 L20 48 L22 58" />
+            </g>
+            <g class="crack" style="--i:2">
+              <path class="seam" d="M76 12 L70 28 L75 42 L70 56" />
+              <path class="line" d="M76 12 L70 28 L75 42 L70 56" />
+              <path class="line branch" d="M75 42 L82 50 L80 62" />
+            </g>
+            <g class="crack" style="--i:3">
+              <path class="seam" d="M42 46 L50 62 L46 78 L52 92" />
+              <path class="line" d="M42 46 L50 62 L46 78 L52 92" />
+            </g>
+            <g class="crack" style="--i:4">
+              <path class="seam" d="M22 50 L32 64 L28 78" />
+              <path class="line" d="M22 50 L32 64 L28 78" />
+            </g>
+            <g class="crack" style="--i:5">
+              <path class="seam" d="M78 48 L68 62 L74 76" />
+              <path class="line" d="M78 48 L68 62 L74 76" />
+            </g>
+            <g class="crack" style="--i:6">
+              <path class="seam" d="M30 88 L44 84 L58 86 L72 82" />
+              <path class="line" d="M30 88 L44 84 L58 86 L72 82" />
+            </g>
+          </svg>
+          <!-- 融水滴落（L1/L2） -->
+          <div class="drips" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <!-- 融水溪流：从裂缝向下蔓延的水痕（L2/L3） -->
+          <div class="melt-streaks" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </div>
         <div class="shards" aria-hidden="true">
           <span></span><span></span><span></span><span></span>
           <span></span><span></span><span></span><span></span>
